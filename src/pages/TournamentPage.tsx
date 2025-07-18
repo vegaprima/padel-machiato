@@ -5,8 +5,8 @@ import { ArrowLeft, Users, Trophy, Target } from 'lucide-react';
 function TournamentPage() {
   const navigate = useNavigate();
   const [tournamentName, setTournamentName] = useState('');
-  const [numberOfPeople, setNumberOfPeople] = useState('');
-  const [pointsToPlay, setPointsToPlay] = useState('');
+  const [numberOfPeople, setNumberOfPeople] = useState('4');
+  const [pointsToPlay, setPointsToPlay] = useState('16');
 
   const handleBack = () => {
     navigate('/');
@@ -14,11 +14,13 @@ function TournamentPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Handle form submission
-    console.log({
-      tournamentName,
-      numberOfPeople: parseInt(numberOfPeople),
-      pointsToPlay: parseInt(pointsToPlay)
+    // Navigate to players page with tournament data
+    navigate('/players', {
+      state: {
+        tournamentName,
+        numberOfPeople: parseInt(numberOfPeople),
+        pointsToPlay: parseInt(pointsToPlay)
+      }
     });
   };
 
@@ -81,14 +83,14 @@ function TournamentPage() {
               <Target className="w-4 h-4 mr-2 text-gray-500" />
               Points to Play
             </label>
-            <input
-              type="number"
+            <select
               value={pointsToPlay}
               onChange={(e) => setPointsToPlay(e.target.value)}
-              placeholder="Enter points per game"
-              min="1"
               className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
-            />
+            >
+              <option value="16">16 points</option>
+              <option value="21">21 points</option>
+            </select>
           </div>
 
           {/* Submit Button */}
