@@ -25,7 +25,7 @@ function PlayersPage() {
   }, [tournamentData, navigate]);
 
   const handleBack = () => {
-    navigate('/tournament');
+    navigate(-1);
   };
 
   const handlePlayerNameChange = (index: number, name: string) => {

@@ -89,7 +89,7 @@ function MatchesPage() {
   };
 
   const handleBack = () => {
-    navigate('/players');
+    navigate(-1);
   };
 
   const handleLeaderboard = () => {

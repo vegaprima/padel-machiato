@@ -9,7 +9,7 @@ function TournamentPage() {
   const [pointsToPlay, setPointsToPlay] = useState('16');
 
   const handleBack = () => {
-    navigate('/');
+    navigate(-1);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
