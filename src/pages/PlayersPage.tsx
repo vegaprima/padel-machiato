@@ -36,10 +36,12 @@ function PlayersPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Handle tournament creation with all data
-    console.log({
-      ...tournamentData,
-      players: playerNames.filter(name => name.trim())
+    // Navigate to matches page with all tournament data
+    navigate('/matches', {
+      state: {
+        ...tournamentData,
+        players: playerNames.filter(name => name.trim())
+      }
     });
   };
 
