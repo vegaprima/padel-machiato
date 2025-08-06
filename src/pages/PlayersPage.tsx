@@ -6,6 +6,7 @@ interface TournamentData {
   tournamentName: string;
   numberOfPeople: number;
   pointsToPlay: number;
+  tournamentType: string;
 }
 
 function PlayersPage() {
@@ -69,7 +70,7 @@ function PlayersPage() {
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
         <h2 className="text-sm font-medium text-gray-600 mb-1">{tournamentData.tournamentName}</h2>
         <p className="text-xs text-gray-500">
-          {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
+          {tournamentData.tournamentType} • {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
         </p>
       </div>
 

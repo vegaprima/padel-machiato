@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Trophy, Target } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Target, Gamepad2 } from 'lucide-react';
 
 function TournamentPage() {
   const navigate = useNavigate();
   const [tournamentName, setTournamentName] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('4');
   const [pointsToPlay, setPointsToPlay] = useState('16');
+  const [tournamentType, setTournamentType] = useState('Americano');
 
   const handleBack = () => {
     navigate(-1);
@@ -19,7 +20,8 @@ function TournamentPage() {
       state: {
         tournamentName,
         numberOfPeople: parseInt(numberOfPeople),
-        pointsToPlay: parseInt(pointsToPlay)
+        pointsToPlay: parseInt(pointsToPlay),
+        tournamentType
       }
     });
   };
@@ -58,6 +60,22 @@ function TournamentPage() {
               placeholder="Enter tournament name"
               className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
             />
+          </div>
+
+          {/* Tournament Type */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
+              <Gamepad2 className="w-4 h-4 mr-2 text-gray-500" />
+              Tournament Type
+            </label>
+            <select
+              value={tournamentType}
+              onChange={(e) => setTournamentType(e.target.value)}
+              className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
+            >
+              <option value="Americano">Americano</option>
+              <option value="Fixed Partner">Fixed Partner</option>
+            </select>
           </div>
 
           {/* Number of People */}
