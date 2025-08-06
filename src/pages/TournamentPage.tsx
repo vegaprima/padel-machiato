@@ -26,9 +26,17 @@ function TournamentPage() {
     });
   };
 
-  const isFormValid = tournamentName.trim() && 
-                     parseInt(numberOfPeople) >= 4 && 
-                     parseInt(pointsToPlay) > 0;
+  const isFormValid = () => {
+    const numPlayers = parseInt(numberOfPeople);
+    const hasValidName = tournamentName.trim();
+    const hasValidPoints = parseInt(pointsToPlay) > 0;
+    
+    if (tournamentType === 'Fixed Partner') {
+      return hasValidName && numPlayers >= 4 && numPlayers % 2 === 0 && hasValidPoints;
+    } else {
+      return hasValidName && numPlayers >= 4 && hasValidPoints;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -92,7 +100,12 @@ function TournamentPage() {
               min="4"
               className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
             />
-            <p className="text-xs text-gray-500 mt-2">Minimum 4 players required</p>
+            <p className="text-xs text-gray-500 mt-2">
+              {tournamentType === 'Fixed Partner' 
+                ? 'Minimum 4 players required (must be even number)' 
+                : 'Minimum 4 players required'
+              }
+            </p>
           </div>
 
           {/* Points to Play */}
@@ -115,9 +128,9 @@ function TournamentPage() {
           <div className="pt-8">
             <button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid()}
               className={`w-full py-4 px-6 rounded-xl font-medium text-lg transition-all duration-200 ${
-                isFormValid
+                isFormValid()
                   ? 'bg-gray-900 text-white hover:bg-gray-800 active:scale-95'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
