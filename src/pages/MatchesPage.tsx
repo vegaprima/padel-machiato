@@ -8,17 +8,24 @@ interface TournamentData {
   pointsToPlay: number;
   tournamentType: string;
   players: string[];
+  teams?: Team[];
 }
 
-interface Team {
+interface PlayerTeam {
+  name: string;
+  color: string;
+  players: [string, string];
+}
+
+interface MatchTeam {
   players: string[];
   score: number;
 }
 
 interface Match {
   id: number;
-  team1: Team;
-  team2: Team;
+  team1: MatchTeam;
+  team2: MatchTeam;
   isCompleted: boolean;
   timestamp: Date;
 }
@@ -33,36 +40,83 @@ function MatchesPage() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    if (!tournamentData || !tournamentData.players) {
+    if (!tournamentData) {
       navigate('/players');
       return;
     }
+    
+    // Check if we have the required data based on tournament type
+    if (tournamentData.tournamentType === 'Americano' && (!tournamentData.players || tournamentData.players.length < 4)) {
+      navigate('/players');
+      return;
+    }
+    
+    if (tournamentData.tournamentType === 'Fixed Partner' && (!tournamentData.teams || tournamentData.teams.length < 2)) {
+      navigate('/players');
+      return;
+    }
+    
     generateRandomMatch();
   }, [tournamentData, navigate]);
 
   const generateRandomMatch = () => {
-    if (!tournamentData?.players || tournamentData.players.length < 4) return;
+    if (tournamentData.tournamentType === 'Americano') {
+      // Americano logic - randomize individual players
+      if (!tournamentData?.players || tournamentData.players.length < 4) return;
 
-    // Shuffle players array
-    const shuffledPlayers = [...tournamentData.players].sort(() => Math.random() - 0.5);
-    
-    // Select 4 random players
-    const selectedPlayers = shuffledPlayers.slice(0, 4);
-    
-    // Divide into 2 teams
-    const team1 = { players: [selectedPlayers[0], selectedPlayers[1]], score: 0 };
-    const team2 = { players: [selectedPlayers[2], selectedPlayers[3]], score: 0 };
-    
-    const newMatch: Match = {
-      id: Date.now(),
-      team1,
-      team2,
-      isCompleted: false,
-      timestamp: new Date()
-    };
-    
-    setCurrentMatch(newMatch);
+      // Shuffle players array
+      const shuffledPlayers = [...tournamentData.players].sort(() => Math.random() - 0.5);
+      
+      // Select 4 random players
+      const selectedPlayers = shuffledPlayers.slice(0, 4);
+      
+      // Divide into 2 teams
+      const team1 = { players: [selectedPlayers[0], selectedPlayers[1]], score: 0 };
+      const team2 = { players: [selectedPlayers[2], selectedPlayers[3]], score: 0 };
+      
+      const newMatch: Match = {
+        id: Date.now(),
+        team1,
+        team2,
+        isCompleted: false,
+        timestamp: new Date()
+      };
+      
+      setCurrentMatch(newMatch);
+    } else if (tournamentData.tournamentType === 'Fixed Partner') {
+      // Fixed Partner logic - randomize teams only
+      if (!tournamentData?.teams || tournamentData.teams.length < 2) return;
+
+      // Shuffle teams array
+      const shuffledTeams = [...tournamentData.teams].sort(() => Math.random() - 0.5);
+      
+      // Select 2 random teams
+      const selectedTeams = shuffledTeams.slice(0, 2);
+      
+      // Create match teams from fixed partner teams
+      const team1 = { 
+        players: [selectedTeams[0].players[0], selectedTeams[0].players[1]], 
+        score: 0,
+        teamName: selectedTeams[0].name
+      };
+      const team2 = { 
+        players: [selectedTeams[1].players[0], selectedTeams[1].players[1]], 
+        score: 0,
+        teamName: selectedTeams[1].name
+      };
+      
+      const newMatch: Match = {
+        id: Date.now(),
+        team1,
+        team2,
+        isCompleted: false,
+        timestamp: new Date()
+      };
+      
+      setCurrentMatch(newMatch);
+    }
   };
+    
 
   const updateScore = (team: 'team1' | 'team2', increment: boolean) => {
     if (!currentMatch) return;
@@ -187,7 +241,9 @@ function MatchesPage() {
                 {/* Team 1 */}
                 <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-blue-800">Team 1</h3>
+                    <h3 className="text-sm font-medium text-blue-800">
+                      {currentMatch.team1.teamName || 'Team 1'}
+                    </h3>
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => updateScore('team1', false)}
@@ -223,7 +279,9 @@ function MatchesPage() {
                 {/* Team 2 */}
                 <div className="bg-red-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-red-800">Team 2</h3>
+                    <h3 className="text-sm font-medium text-red-800">
+                      {currentMatch.team2.teamName || 'Team 2'}
+                    </h3>
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => updateScore('team2', false)}

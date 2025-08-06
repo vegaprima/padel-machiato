@@ -92,7 +92,8 @@ function PlayersPage() {
       navigate('/matches', {
         state: {
           ...tournamentData,
-          teams: teams
+          teams: teams,
+          players: [] // Add empty players array for consistency
         }
       });
     }
