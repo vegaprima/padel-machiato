@@ -216,7 +216,7 @@ function MatchesPage() {
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-100">
         <button 
-          onClick={handleBack}
+          onClick={showHistory ? () => setShowHistory(false) : handleBack}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-6 h-6 text-gray-600" />
