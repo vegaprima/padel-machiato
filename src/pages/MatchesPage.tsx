@@ -30,6 +30,11 @@ interface Match {
   timestamp: Date;
 }
 
+interface ScoreInputModal {
+  isOpen: boolean;
+  team: 'team1' | 'team2' | null;
+  currentScore: number;
+}
 function MatchesPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +43,12 @@ function MatchesPage() {
   const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [scoreModal, setScoreModal] = useState<ScoreInputModal>({
+    isOpen: false,
+    team: null,
+    currentScore: 0
+  });
+  const [tempScore, setTempScore] = useState('');
 
   useEffect(() => {
     if (!tournamentData) {
@@ -129,6 +140,50 @@ function MatchesPage() {
     }
     
     setCurrentMatch(updatedMatch);
+  };
+
+  const openScoreModal = (team: 'team1' | 'team2') => {
+    if (!currentMatch) return;
+    
+    setScoreModal({
+      isOpen: true,
+      team,
+      currentScore: currentMatch[team].score
+    });
+    setTempScore(currentMatch[team].score.toString());
+  };
+
+  const closeScoreModal = () => {
+    setScoreModal({
+      isOpen: false,
+      team: null,
+      currentScore: 0
+    });
+    setTempScore('');
+  };
+
+  const handleScoreSubmit = () => {
+    if (!currentMatch || !scoreModal.team) return;
+    
+    const inputScore = parseInt(tempScore);
+    const maxPoints = tournamentData.pointsToPlay;
+    
+    // Validate input
+    if (isNaN(inputScore) || inputScore < 0 || inputScore > maxPoints) {
+      return;
+    }
+    
+    const updatedMatch = { ...currentMatch };
+    const otherTeam = scoreModal.team === 'team1' ? 'team2' : 'team1';
+    
+    // Set the input team's score
+    updatedMatch[scoreModal.team].score = inputScore;
+    
+    // Calculate the other team's score (max points - input score)
+    updatedMatch[otherTeam].score = maxPoints - inputScore;
+    
+    setCurrentMatch(updatedMatch);
+    closeScoreModal();
   };
 
   const completeMatch = () => {
@@ -251,9 +306,12 @@ function MatchesPage() {
                       >
                         <Minus className="w-4 h-4 text-blue-800" />
                       </button>
-                      <span className="text-2xl font-bold text-blue-800 min-w-[3rem] text-center">
+                      <button
+                        onClick={() => openScoreModal('team1')}
+                        className="text-2xl font-bold text-blue-800 min-w-[3rem] text-center hover:bg-blue-200 rounded-lg px-2 py-1 transition-colors"
+                      >
                         {currentMatch.team1.score}
-                      </span>
+                      </button>
                       <button
                         onClick={() => updateScore('team1', true)}
                         className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
@@ -289,9 +347,12 @@ function MatchesPage() {
                       >
                         <Minus className="w-4 h-4 text-red-800" />
                       </button>
-                      <span className="text-2xl font-bold text-red-800 min-w-[3rem] text-center">
+                      <button
+                        onClick={() => openScoreModal('team2')}
+                        className="text-2xl font-bold text-red-800 min-w-[3rem] text-center hover:bg-red-200 rounded-lg px-2 py-1 transition-colors"
+                      >
                         {currentMatch.team2.score}
-                      </span>
+                      </button>
                       <button
                         onClick={() => updateScore('team2', true)}
                         className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
@@ -342,6 +403,57 @@ function MatchesPage() {
           Leaderboard
         </button>
       </div>
+
+      {/* Score Input Modal */}
+      {scoreModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">
+              Enter Score for {scoreModal.team === 'team1' ? 
+                (currentMatch?.team1.teamName || 'Team 1') : 
+                (currentMatch?.team2.teamName || 'Team 2')
+              }
+            </h3>
+            
+            <div className="mb-6">
+              <input
+                type="number"
+                value={tempScore}
+                onChange={(e) => setTempScore(e.target.value)}
+                min="0"
+                max={tournamentData.pointsToPlay}
+                className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg text-center"
+                placeholder="Enter score"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Max score: {tournamentData.pointsToPlay} points
+              </p>
+              {tempScore && !isNaN(parseInt(tempScore)) && parseInt(tempScore) <= tournamentData.pointsToPlay && (
+                <p className="text-xs text-blue-600 mt-1 text-center">
+                  Other team will get: {tournamentData.pointsToPlay - parseInt(tempScore)} points
+                </p>
+              )}
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={closeScoreModal}
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScoreSubmit}
+                disabled={!tempScore || isNaN(parseInt(tempScore)) || parseInt(tempScore) < 0 || parseInt(tempScore) > tournamentData.pointsToPlay}
+                className="flex-1 py-3 px-4 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Set Score
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
