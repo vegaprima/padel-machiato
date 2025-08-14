@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, User, Users } from 'lucide-react';
+import { getGoogleSheetsService } from '../services/googleSheets';
 
 interface TournamentData {
   tournamentName: string;
@@ -78,6 +79,30 @@ function PlayersPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save tournament data to Google Sheets
+    const saveToSheets = async () => {
+      const sheetsService = getGoogleSheetsService();
+      if (sheetsService) {
+        try {
+          const tournamentDataToSave = {
+            ...tournamentData,
+            players: tournamentData.tournamentType === 'Americano' ? playerNames.filter(name => name.trim()) : undefined,
+            teams: tournamentData.tournamentType === 'Fixed Partner' ? teams : undefined,
+            timestamp: new Date().toISOString()
+          };
+          
+          await sheetsService.saveTournamentData(tournamentDataToSave);
+          console.log('Tournament data saved to Google Sheets successfully');
+        } catch (error) {
+          console.error('Failed to save tournament data to Google Sheets:', error);
+          // Continue with the app flow even if sheets saving fails
+        }
+      }
+    };
+    
+    // Save to sheets in background
+    saveToSheets();
     
     if (tournamentData.tournamentType === 'Americano') {
       // Navigate to matches page with player names for Americano
