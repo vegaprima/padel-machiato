@@ -5,6 +5,7 @@ import { ArrowLeft, User, Users } from 'lucide-react';
 interface TournamentData {
   tournamentName: string;
   numberOfPeople: number;
+  numberOfCourts: number;
   pointsToPlay: number;
   tournamentType: string;
 }
@@ -135,7 +136,7 @@ function PlayersPage() {
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
         <h2 className="text-sm font-medium text-gray-600 mb-1">{tournamentData.tournamentName}</h2>
         <p className="text-xs text-gray-500">
-          {tournamentData.tournamentType} • {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
+          {tournamentData.tournamentType} • {tournamentData.numberOfCourts} court{tournamentData.numberOfCourts > 1 ? 's' : ''} • {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
         </p>
       </div>
 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Trophy, Target, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Target, Gamepad2, MapPin } from 'lucide-react';
 
 function TournamentPage() {
   const navigate = useNavigate();
   const [tournamentName, setTournamentName] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('4');
+  const [numberOfCourts, setNumberOfCourts] = useState('1');
   const [pointsToPlay, setPointsToPlay] = useState('16');
   const [tournamentType, setTournamentType] = useState('Americano');
 
@@ -20,6 +21,7 @@ function TournamentPage() {
       state: {
         tournamentName,
         numberOfPeople: parseInt(numberOfPeople),
+        numberOfCourts: parseInt(numberOfCourts),
         pointsToPlay: parseInt(pointsToPlay),
         tournamentType
       }
@@ -28,16 +30,28 @@ function TournamentPage() {
 
   const isFormValid = () => {
     const numPlayers = parseInt(numberOfPeople);
+    const numCourts = parseInt(numberOfCourts);
     const hasValidName = tournamentName.trim();
     const hasValidPoints = parseInt(pointsToPlay) > 0;
+    const minPlayersForCourts = numCourts * 4;
     
     if (tournamentType === 'Fixed Partner') {
-      return hasValidName && numPlayers >= 4 && numPlayers % 2 === 0 && hasValidPoints;
+      return hasValidName && numPlayers >= minPlayersForCourts && numPlayers % 2 === 0 && hasValidPoints;
     } else {
-      return hasValidName && numPlayers >= 4 && hasValidPoints;
+      return hasValidName && numPlayers >= minPlayersForCourts && hasValidPoints;
     }
   };
 
+  const getMinPlayersText = () => {
+    const numCourts = parseInt(numberOfCourts);
+    const minPlayers = numCourts * 4;
+    
+    if (tournamentType === 'Fixed Partner') {
+      return `Minimum ${minPlayers} players required for ${numCourts} court${numCourts > 1 ? 's' : ''} (must be even number)`;
+    } else {
+      return `Minimum ${minPlayers} players required for ${numCourts} court${numCourts > 1 ? 's' : ''}`;
+    }
+  };
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -86,6 +100,24 @@ function TournamentPage() {
             </select>
           </div>
 
+          {/* Number of Courts */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
+              <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+              Number of Courts
+            </label>
+            <select
+              value={numberOfCourts}
+              onChange={(e) => setNumberOfCourts(e.target.value)}
+              className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
+            >
+              <option value="1">1 Court</option>
+              <option value="2">2 Courts</option>
+              <option value="3">3 Courts</option>
+              <option value="4">4 Courts</option>
+              <option value="5">5 Courts</option>
+            </select>
+          </div>
           {/* Number of People */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
@@ -96,15 +128,12 @@ function TournamentPage() {
               type="number"
               value={numberOfPeople}
               onChange={(e) => setNumberOfPeople(e.target.value)}
-              placeholder="Minimum 4 players"
-              min="4"
+              placeholder={`Minimum ${parseInt(numberOfCourts) * 4} players`}
+              min={parseInt(numberOfCourts) * 4}
               className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-lg"
             />
             <p className="text-xs text-gray-500 mt-2">
-              {tournamentType === 'Fixed Partner' 
-                ? 'Minimum 4 players required (must be even number)' 
-                : 'Minimum 4 players required'
-              }
+              {getMinPlayersText()}
             </p>
           </div>
 

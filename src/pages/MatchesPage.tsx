@@ -5,6 +5,7 @@ import { ArrowLeft, Shuffle, Trophy, Plus, Minus, History } from 'lucide-react';
 interface TournamentData {
   tournamentName: string;
   numberOfPeople: number;
+  numberOfCourts: number;
   pointsToPlay: number;
   tournamentType: string;
   players: string[];
@@ -24,6 +25,7 @@ interface MatchTeam {
 
 interface Match {
   id: number;
+  courtNumber: number;
   team1: MatchTeam;
   team2: MatchTeam;
   isCompleted: boolean;
@@ -34,15 +36,18 @@ interface ScoreInputModal {
   isOpen: boolean;
   team: 'team1' | 'team2' | null;
   currentScore: number;
+  matchId?: number;
 }
 function MatchesPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const tournamentData = location.state as TournamentData;
   
-  const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
+  const [currentMatches, setCurrentMatches] = useState<Match[]>([]);
   const [matchHistory, setMatchHistory] = useState<Match[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [playerLastPlayedRound, setPlayerLastPlayedRound] = useState<{[key: string]: number}>({});
+  const [currentRound, setCurrentRound] = useState(1);
   const [scoreModal, setScoreModal] = useState<ScoreInputModal>({
     isOpen: false,
     team: null,
@@ -71,6 +76,115 @@ function MatchesPage() {
   }, [tournamentData, navigate]);
 
   const generateRandomMatch = () => {
+    const matches: Match[] = [];
+    const usedPlayers = new Set<string>();
+    
+    // Get all available players
+    let availablePlayers: string[] = [];
+    if (tournamentData.tournamentType === 'Americano') {
+      availablePlayers = [...tournamentData.players];
+    } else if (tournamentData.tournamentType === 'Fixed Partner') {
+      // For fixed partner, we work with teams but track individual players for idle logic
+      availablePlayers = tournamentData.teams?.flatMap(team => team.players) || [];
+    }
+    
+    // Prioritize idle players (those who didn't play in the previous round)
+    const idlePlayers = availablePlayers.filter(player => 
+      playerLastPlayedRound[player] !== currentRound - 1
+    );
+    const recentlyPlayedPlayers = availablePlayers.filter(player => 
+      playerLastPlayedRound[player] === currentRound - 1
+    );
+    
+    // Combine prioritized players (idle first, then recently played)
+    const prioritizedPlayers = [...idlePlayers, ...recentlyPlayedPlayers];
+    
+    for (let court = 1; court <= tournamentData.numberOfCourts; court++) {
+      if (tournamentData.tournamentType === 'Americano') {
+        // Americano logic - select 4 players prioritizing idle ones
+        const availableForThisCourt = prioritizedPlayers.filter(player => !usedPlayers.has(player));
+        
+        if (availableForThisCourt.length < 4) {
+          // Not enough players for this court
+          break;
+        }
+        
+        // Select 4 players
+        const selectedPlayers = availableForThisCourt.slice(0, 4);
+        selectedPlayers.forEach(player => usedPlayers.add(player));
+        
+        // Shuffle the selected players and create teams
+        const shuffledPlayers = [...selectedPlayers].sort(() => Math.random() - 0.5);
+        const team1 = { players: [shuffledPlayers[0], shuffledPlayers[1]], score: 0 };
+        const team2 = { players: [shuffledPlayers[2], shuffledPlayers[3]], score: 0 };
+        
+        const newMatch: Match = {
+          id: Date.now() + court,
+          courtNumber: court,
+          team1,
+          team2,
+          isCompleted: false,
+          timestamp: new Date()
+        };
+        
+        matches.push(newMatch);
+        
+      } else if (tournamentData.tournamentType === 'Fixed Partner') {
+        // Fixed Partner logic - select teams but prioritize those with idle players
+        const availableTeams = tournamentData.teams?.filter(team => 
+          !team.players.some(player => usedPlayers.has(player))
+        ) || [];
+        
+        if (availableTeams.length < 2) {
+          // Not enough teams for this court
+          break;
+        }
+        
+        // Sort teams by priority (teams with more idle players first)
+        const sortedTeams = availableTeams.sort((a, b) => {
+          const aIdleCount = a.players.filter(player => 
+            playerLastPlayedRound[player] !== currentRound - 1
+          ).length;
+          const bIdleCount = b.players.filter(player => 
+            playerLastPlayedRound[player] !== currentRound - 1
+          ).length;
+          return bIdleCount - aIdleCount;
+        });
+        
+        // Select first 2 teams
+        const selectedTeams = sortedTeams.slice(0, 2);
+        selectedTeams.forEach(team => 
+          team.players.forEach(player => usedPlayers.add(player))
+        );
+        
+        const team1 = { 
+          players: [selectedTeams[0].players[0], selectedTeams[0].players[1]], 
+          score: 0,
+          teamName: selectedTeams[0].name
+        };
+        const team2 = { 
+          players: [selectedTeams[1].players[0], selectedTeams[1].players[1]], 
+          score: 0,
+          teamName: selectedTeams[1].name
+        };
+        
+        const newMatch: Match = {
+          id: Date.now() + court,
+          courtNumber: court,
+          team1,
+          team2,
+          isCompleted: false,
+          timestamp: new Date()
+        };
+        
+        matches.push(newMatch);
+      }
+    }
+    
+    setCurrentMatches(matches);
+  };
+
+  const generateRandomMatchOld = () => {
     if (tournamentData.tournamentType === 'Americano') {
       // Americano logic - randomize individual players
       if (!tournamentData?.players || tournamentData.players.length < 4) return;
@@ -87,13 +201,14 @@ function MatchesPage() {
       
       const newMatch: Match = {
         id: Date.now(),
+        courtNumber: 1,
         team1,
         team2,
         isCompleted: false,
         timestamp: new Date()
       };
       
-      setCurrentMatch(newMatch);
+      setCurrentMatches([newMatch]);
     } else if (tournamentData.tournamentType === 'Fixed Partner') {
       // Fixed Partner logic - randomize teams only
       if (!tournamentData?.teams || tournamentData.teams.length < 2) return;
@@ -118,39 +233,44 @@ function MatchesPage() {
       
       const newMatch: Match = {
         id: Date.now(),
+        courtNumber: 1,
         team1,
         team2,
         isCompleted: false,
         timestamp: new Date()
       };
       
-      setCurrentMatch(newMatch);
+      setCurrentMatches([newMatch]);
     }
   };
     
 
-  const updateScore = (team: 'team1' | 'team2', increment: boolean) => {
-    if (!currentMatch) return;
-
-    const updatedMatch = { ...currentMatch };
-    if (increment) {
-      updatedMatch[team].score += 1;
-    } else {
-      updatedMatch[team].score = Math.max(0, updatedMatch[team].score - 1);
-    }
-    
-    setCurrentMatch(updatedMatch);
+  const updateScore = (matchId: number, team: 'team1' | 'team2', increment: boolean) => {
+    setCurrentMatches(prev => prev.map(match => {
+      if (match.id !== matchId) return match;
+      
+      const updatedMatch = { ...match };
+      if (increment) {
+        updatedMatch[team].score += 1;
+      } else {
+        updatedMatch[team].score = Math.max(0, updatedMatch[team].score - 1);
+      }
+      
+      return updatedMatch;
+    }));
   };
 
-  const openScoreModal = (team: 'team1' | 'team2') => {
-    if (!currentMatch) return;
+  const openScoreModal = (matchId: number, team: 'team1' | 'team2') => {
+    const match = currentMatches.find(m => m.id === matchId);
+    if (!match) return;
     
     setScoreModal({
       isOpen: true,
       team,
-      currentScore: currentMatch[team].score
+      currentScore: match[team].score,
+      matchId
     });
-    setTempScore(currentMatch[team].score.toString());
+    setTempScore(match[team].score.toString());
   };
 
   const closeScoreModal = () => {
@@ -163,7 +283,7 @@ function MatchesPage() {
   };
 
   const handleScoreSubmit = () => {
-    if (!currentMatch || !scoreModal.team) return;
+    if (!scoreModal.team || !scoreModal.matchId) return;
     
     const inputScore = parseInt(tempScore);
     const maxPoints = tournamentData.pointsToPlay;
@@ -173,28 +293,64 @@ function MatchesPage() {
       return;
     }
     
-    const updatedMatch = { ...currentMatch };
-    const otherTeam = scoreModal.team === 'team1' ? 'team2' : 'team1';
+    setCurrentMatches(prev => prev.map(match => {
+      if (match.id !== scoreModal.matchId) return match;
+      
+      const updatedMatch = { ...match };
+      const otherTeam = scoreModal.team === 'team1' ? 'team2' : 'team1';
+      
+      // Set the input team's score
+      updatedMatch[scoreModal.team!].score = inputScore;
+      
+      // Calculate the other team's score (max points - input score)
+      updatedMatch[otherTeam].score = maxPoints - inputScore;
+      
+      return updatedMatch;
+    }));
     
-    // Set the input team's score
-    updatedMatch[scoreModal.team].score = inputScore;
-    
-    // Calculate the other team's score (max points - input score)
-    updatedMatch[otherTeam].score = maxPoints - inputScore;
-    
-    setCurrentMatch(updatedMatch);
     closeScoreModal();
   };
 
-  const completeMatch = () => {
-    if (!currentMatch) return;
+  const completeMatch = (matchId: number) => {
+    const matchToComplete = currentMatches.find(m => m.id === matchId);
+    if (!matchToComplete) return;
 
     const completedMatch = {
-      ...currentMatch,
+      ...matchToComplete,
       isCompleted: true
     };
 
+    // Update player last played round
+    const updatedPlayerLastPlayed = { ...playerLastPlayedRound };
+    [...completedMatch.team1.players, ...completedMatch.team2.players].forEach(player => {
+      updatedPlayerLastPlayed[player] = currentRound;
+    });
+    setPlayerLastPlayedRound(updatedPlayerLastPlayed);
+
     setMatchHistory(prev => [completedMatch, ...prev]);
+    
+    // Remove completed match from current matches
+    setCurrentMatches(prev => prev.filter(m => m.id !== matchId));
+  };
+
+  const completeAllMatches = () => {
+    // Complete all current matches
+    const completedMatches = currentMatches.map(match => ({
+      ...match,
+      isCompleted: true
+    }));
+
+    // Update player last played round for all players
+    const updatedPlayerLastPlayed = { ...playerLastPlayedRound };
+    completedMatches.forEach(match => {
+      [...match.team1.players, ...match.team2.players].forEach(player => {
+        updatedPlayerLastPlayed[player] = currentRound;
+      });
+    });
+    setPlayerLastPlayedRound(updatedPlayerLastPlayed);
+
+    setMatchHistory(prev => [...completedMatches, ...prev]);
+    setCurrentRound(prev => prev + 1);
     generateRandomMatch();
   };
 
@@ -236,8 +392,11 @@ function MatchesPage() {
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
         <h2 className="text-sm font-medium text-gray-600 mb-1">{tournamentData.tournamentName}</h2>
         <p className="text-xs text-gray-500">
-          {tournamentData.tournamentType} • {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
+          {tournamentData.tournamentType} • {tournamentData.numberOfCourts} court{tournamentData.numberOfCourts > 1 ? 's' : ''} • {tournamentData.numberOfPeople} players • {tournamentData.pointsToPlay} points
         </p>
+        {!showHistory && (
+          <p className="text-xs text-blue-600 mt-1">Round {currentRound}</p>
+        )}
       </div>
 
       {/* Content */}
@@ -254,7 +413,7 @@ function MatchesPage() {
                 <div key={match.id} className="bg-gray-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs text-gray-500">
-                      {match.timestamp.toLocaleTimeString()}
+                      Court {match.courtNumber} • {match.timestamp.toLocaleTimeString()}
                     </span>
                     <span className="text-lg font-bold text-gray-800">
                       {match.team1.score} - {match.team2.score}
@@ -289,103 +448,125 @@ function MatchesPage() {
           </div>
         ) : (
           /* Current Match */
-          currentMatch && (
-            <div className="space-y-8">
-              {/* Teams with Scores */}
-              <div className="space-y-6">
-                {/* Team 1 */}
-                <div className="bg-blue-50 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-blue-800">
-                      {currentMatch.team1.teamName || 'Team 1'}
-                    </h3>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => updateScore('team1', false)}
-                        className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Minus className="w-4 h-4 text-blue-800" />
-                      </button>
-                      <button
-                        onClick={() => openScoreModal('team1')}
-                        className="text-2xl font-bold text-blue-800 min-w-[3rem] text-center hover:bg-blue-200 rounded-lg px-2 py-1 transition-colors"
-                      >
-                        {currentMatch.team1.score}
-                      </button>
-                      <button
-                        onClick={() => updateScore('team1', true)}
-                        className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4 text-blue-800" />
-                      </button>
+          currentMatches.length > 0 && (
+            <div className="space-y-6">
+              {/* Current Matches */}
+              {currentMatches.map((match) => (
+                <div key={match.id} className="border border-gray-200 rounded-xl p-6">
+                  {/* Court Header */}
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-medium text-gray-800">Court {match.courtNumber}</h3>
+                  </div>
+                  
+                  {/* Teams with Scores */}
+                  <div className="space-y-6">
+                    {/* Team 1 */}
+                    <div className="bg-blue-50 rounded-xl p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-medium text-blue-800">
+                          {match.team1.teamName || 'Team 1'}
+                        </h4>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => updateScore(match.id, 'team1', false)}
+                            className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Minus className="w-4 h-4 text-blue-800" />
+                          </button>
+                          <button
+                            onClick={() => openScoreModal(match.id, 'team1')}
+                            className="text-2xl font-bold text-blue-800 min-w-[3rem] text-center hover:bg-blue-200 rounded-lg px-2 py-1 transition-colors"
+                          >
+                            {match.team1.score}
+                          </button>
+                          <button
+                            onClick={() => updateScore(match.id, 'team1', true)}
+                            className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Plus className="w-4 h-4 text-blue-800" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {match.team1.players.map((player, index) => (
+                          <div key={index} className="bg-white rounded-lg p-4 text-center">
+                            <span className="text-lg font-medium text-gray-800">{player}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* VS Divider */}
+                    <div className="text-center">
+                      <span className="text-2xl font-bold text-gray-400">VS</span>
+                    </div>
+
+                    {/* Team 2 */}
+                    <div className="bg-red-50 rounded-xl p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-medium text-red-800">
+                          {match.team2.teamName || 'Team 2'}
+                        </h4>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => updateScore(match.id, 'team2', false)}
+                            className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Minus className="w-4 h-4 text-red-800" />
+                          </button>
+                          <button
+                            onClick={() => openScoreModal(match.id, 'team2')}
+                            className="text-2xl font-bold text-red-800 min-w-[3rem] text-center hover:bg-red-200 rounded-lg px-2 py-1 transition-colors"
+                          >
+                            {match.team2.score}
+                          </button>
+                          <button
+                            onClick={() => updateScore(match.id, 'team2', true)}
+                            className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
+                          >
+                            <Plus className="w-4 h-4 text-red-800" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {match.team2.players.map((player, index) => (
+                          <div key={index} className="bg-white rounded-lg p-4 text-center">
+                            <span className="text-lg font-medium text-gray-800">{player}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    {currentMatch.team1.players.map((player, index) => (
-                      <div key={index} className="bg-white rounded-lg p-4 text-center">
-                        <span className="text-lg font-medium text-gray-800">{player}</span>
-                      </div>
-                    ))}
+
+                  {/* Individual Match Complete Button */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => completeMatch(match.id)}
+                      className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Complete Match
+                    </button>
                   </div>
                 </div>
+              ))}
 
-                {/* VS Divider */}
-                <div className="text-center">
-                  <span className="text-2xl font-bold text-gray-400">VS</span>
-                </div>
-
-                {/* Team 2 */}
-                <div className="bg-red-50 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-medium text-red-800">
-                      {currentMatch.team2.teamName || 'Team 2'}
-                    </h3>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => updateScore('team2', false)}
-                        className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Minus className="w-4 h-4 text-red-800" />
-                      </button>
-                      <button
-                        onClick={() => openScoreModal('team2')}
-                        className="text-2xl font-bold text-red-800 min-w-[3rem] text-center hover:bg-red-200 rounded-lg px-2 py-1 transition-colors"
-                      >
-                        {currentMatch.team2.score}
-                      </button>
-                      <button
-                        onClick={() => updateScore('team2', true)}
-                        className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4 text-red-800" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    {currentMatch.team2.players.map((player, index) => (
-                      <div key={index} className="bg-white rounded-lg p-4 text-center">
-                        <span className="text-lg font-medium text-gray-800">{player}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-4">
-                <button
-                  onClick={completeMatch}
-                  className="w-full bg-green-600 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-green-700 transition-colors duration-200 active:scale-95 transform"
-                >
-                  Complete Match & Generate Next
-                </button>
+              {/* Global Action Buttons */}
+              <div className="space-y-4 pt-4">
+                {currentMatches.length > 1 && (
+                  <button
+                    onClick={completeAllMatches}
+                    className="w-full bg-green-600 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-green-700 transition-colors duration-200 active:scale-95 transform"
+                  >
+                    Complete All Matches & Generate Next Round
+                  </button>
+                )}
                 
                 <button
                   onClick={generateRandomMatch}
                   className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-gray-800 transition-colors duration-200 active:scale-95 transform flex items-center justify-center"
                 >
                   <Shuffle className="w-5 h-5 mr-2" />
-                  Generate New Match
+                  Generate New Round
                 </button>
               </div>
             </div>
@@ -408,12 +589,18 @@ function MatchesPage() {
       {scoreModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            {(() => {
+              const match = currentMatches.find(m => m.id === scoreModal.matchId);
+              const teamName = scoreModal.team === 'team1' ? 
+                (match?.team1.teamName || 'Team 1') : 
+                (match?.team2.teamName || 'Team 2');
+              
+              return (
             <h3 className="text-lg font-medium text-gray-800 mb-4 text-center">
-              Enter Score for {scoreModal.team === 'team1' ? 
-                (currentMatch?.team1.teamName || 'Team 1') : 
-                (currentMatch?.team2.teamName || 'Team 2')
-              }
+                Enter Score for {teamName}
             </h3>
+              );
+            })()}
             
             <div className="mb-6">
               <input
