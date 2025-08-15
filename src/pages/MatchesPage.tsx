@@ -450,122 +450,128 @@ function MatchesPage() {
           /* Current Match */
           currentMatches.length > 0 && (
             <div className="space-y-6">
-              {/* Current Matches */}
-              {currentMatches.map((match) => (
-                <div key={match.id} className="border border-gray-200 rounded-xl p-6">
-                  {/* Court Header */}
-                  <div className="text-center mb-6">
-                    <h3 className="text-lg font-medium text-gray-800">Court {match.courtNumber}</h3>
-                  </div>
-                  
-                  {/* Teams with Scores */}
-                  <div className="space-y-6">
-                    {/* Team 1 */}
-                    <div className="bg-blue-50 rounded-xl p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-sm font-medium text-blue-800">
+              {/* Current Matches - Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {currentMatches.map((match) => (
+                  <div key={match.id} className="border border-gray-200 rounded-lg p-4">
+                    {/* Court Header */}
+                    <div className="text-center mb-4">
+                      <h3 className="text-sm font-semibold text-gray-800 bg-gray-100 rounded-full px-3 py-1 inline-block">
+                        Court {match.courtNumber}
+                      </h3>
+                    </div>
+                    
+                    {/* Match Score Display */}
+                    <div className="text-center mb-4">
+                      <div className="flex items-center justify-center space-x-4">
+                        <button
+                          onClick={() => openScoreModal(match.id, 'team1')}
+                          className="text-xl font-bold text-blue-600 hover:bg-blue-50 rounded px-2 py-1 transition-colors min-w-[2rem]"
+                        >
+                          {match.team1.score}
+                        </button>
+                        <span className="text-gray-400 font-medium">-</span>
+                        <button
+                          onClick={() => openScoreModal(match.id, 'team2')}
+                          className="text-xl font-bold text-red-600 hover:bg-red-50 rounded px-2 py-1 transition-colors min-w-[2rem]"
+                        >
+                          {match.team2.score}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Teams */}
+                    <div className="space-y-3">
+                      {/* Team 1 */}
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-blue-800 mb-2 text-center">
                           {match.team1.teamName || 'Team 1'}
-                        </h4>
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => updateScore(match.id, 'team1', false)}
-                            className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
-                          >
-                            <Minus className="w-4 h-4 text-blue-800" />
-                          </button>
-                          <button
-                            onClick={() => openScoreModal(match.id, 'team1')}
-                            className="text-2xl font-bold text-blue-800 min-w-[3rem] text-center hover:bg-blue-200 rounded-lg px-2 py-1 transition-colors"
-                          >
-                            {match.team1.score}
-                          </button>
-                          <button
-                            onClick={() => updateScore(match.id, 'team1', true)}
-                            className="w-8 h-8 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
-                          >
-                            <Plus className="w-4 h-4 text-blue-800" />
-                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {match.team1.players.map((player, index) => (
+                            <div key={index} className="bg-white rounded px-2 py-1 text-center">
+                              <span className="text-xs font-medium text-gray-800">{player}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        {match.team1.players.map((player, index) => (
-                          <div key={index} className="bg-white rounded-lg p-4 text-center">
-                            <span className="text-lg font-medium text-gray-800">{player}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    {/* VS Divider */}
-                    <div className="text-center">
-                      <span className="text-2xl font-bold text-gray-400">VS</span>
-                    </div>
-
-                    {/* Team 2 */}
-                    <div className="bg-red-50 rounded-xl p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-sm font-medium text-red-800">
+                      {/* Team 2 */}
+                      <div className="bg-red-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-red-800 mb-2 text-center">
                           {match.team2.teamName || 'Team 2'}
-                        </h4>
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => updateScore(match.id, 'team2', false)}
-                            className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
-                          >
-                            <Minus className="w-4 h-4 text-red-800" />
-                          </button>
-                          <button
-                            onClick={() => openScoreModal(match.id, 'team2')}
-                            className="text-2xl font-bold text-red-800 min-w-[3rem] text-center hover:bg-red-200 rounded-lg px-2 py-1 transition-colors"
-                          >
-                            {match.team2.score}
-                          </button>
-                          <button
-                            onClick={() => updateScore(match.id, 'team2', true)}
-                            className="w-8 h-8 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
-                          >
-                            <Plus className="w-4 h-4 text-red-800" />
-                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {match.team2.players.map((player, index) => (
+                            <div key={index} className="bg-white rounded px-2 py-1 text-center">
+                              <span className="text-xs font-medium text-gray-800">{player}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        {match.team2.players.map((player, index) => (
-                          <div key={index} className="bg-white rounded-lg p-4 text-center">
-                            <span className="text-lg font-medium text-gray-800">{player}</span>
-                          </div>
-                        ))}
+                    </div>
+
+                    {/* Score Controls */}
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={() => updateScore(match.id, 'team1', false)}
+                          className="w-6 h-6 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
+                        >
+                          <Minus className="w-3 h-3 text-blue-800" />
+                        </button>
+                        <button
+                          onClick={() => updateScore(match.id, 'team1', true)}
+                          className="w-6 h-6 bg-blue-200 hover:bg-blue-300 rounded-full flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="w-3 h-3 text-blue-800" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-center space-x-1">
+                        <button
+                          onClick={() => updateScore(match.id, 'team2', false)}
+                          className="w-6 h-6 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
+                        >
+                          <Minus className="w-3 h-3 text-red-800" />
+                        </button>
+                        <button
+                          onClick={() => updateScore(match.id, 'team2', true)}
+                          className="w-6 h-6 bg-red-200 hover:bg-red-300 rounded-full flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="w-3 h-3 text-red-800" />
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Individual Match Complete Button */}
-                  <div className="mt-6">
-                    <button
-                      onClick={() => completeMatch(match.id)}
-                      className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                    >
-                      Complete Match
-                    </button>
+                    {/* Complete Match Button */}
+                    <div className="mt-4">
+                      <button
+                        onClick={() => completeMatch(match.id)}
+                        className="w-full bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                      >
+                        Complete
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
               {/* Global Action Buttons */}
-              <div className="space-y-4 pt-4">
+              <div className="space-y-3">
                 {currentMatches.length > 1 && (
                   <button
                     onClick={completeAllMatches}
-                    className="w-full bg-green-600 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-green-700 transition-colors duration-200 active:scale-95 transform"
+                    className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
                   >
-                    Complete All Matches & Generate Next Round
+                    Complete All & Next Round
                   </button>
                 )}
                 
                 <button
                   onClick={generateRandomMatch}
-                  className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-medium text-lg hover:bg-gray-800 transition-colors duration-200 active:scale-95 transform flex items-center justify-center"
+                  className="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
                 >
-                  <Shuffle className="w-5 h-5 mr-2" />
+                  <Shuffle className="w-4 h-4 mr-2" />
                   Generate New Round
                 </button>
               </div>
