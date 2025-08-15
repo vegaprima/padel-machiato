@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Shuffle, Trophy, Plus, Minus, History } from 'lucide-react';
-import { getGoogleSheetsService } from '../services/googleSheets';
 
 interface TournamentData {
   tournamentName: string;
@@ -195,21 +194,6 @@ function MatchesPage() {
       isCompleted: true
     };
 
-    // Save match result to Google Sheets
-    const saveMatchToSheets = async () => {
-      const sheetsService = getGoogleSheetsService();
-      if (sheetsService) {
-        try {
-          await sheetsService.saveMatchResult(completedMatch);
-          console.log('Match result saved to Google Sheets successfully');
-        } catch (error) {
-          console.error('Failed to save match result to Google Sheets:', error);
-        }
-      }
-    };
-
-    // Save to sheets in background
-    saveMatchToSheets();
     setMatchHistory(prev => [completedMatch, ...prev]);
     generateRandomMatch();
   };
